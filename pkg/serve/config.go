@@ -35,6 +35,7 @@ import (
 	"github.com/vulcanize/ipld-eth-server/pkg/prom"
 
 	"github.com/vulcanize/ipld-eth-server/pkg/eth"
+	ethServerShared "github.com/vulcanize/ipld-eth-server/pkg/shared"
 )
 
 // Env variables
@@ -82,6 +83,9 @@ type Config struct {
 	EthHttpEndpoint  string
 	Client           *rpc.Client
 	SupportStateDiff bool
+
+	// Cache configuration.
+	GroupCache *ethServerShared.GroupCacheConfig
 }
 
 // NewConfig is used to initialize a watcher config from a .toml file
@@ -205,6 +209,9 @@ func NewConfig() (*Config, error) {
 	} else {
 		c.ChainConfig, err = eth.ChainConfig(nodeInfo.ChainID)
 	}
+
+	c.loadGroupCacheConfig()
+
 	return c, err
 }
 
@@ -215,4 +222,16 @@ func overrideDBConnConfig(con *postgres.Config) {
 	con.MaxIdle = viper.GetInt("database.server.maxIdle")
 	con.MaxOpen = viper.GetInt("database.server.maxOpen")
 	con.MaxLifetime = viper.GetInt("database.server.maxLifetime")
+}
+
+func (c *Config) loadGroupCacheConfig() {
+	gcc := ethServerShared.GroupCacheConfig{}
+
+	gcc.Pool.HttpEndpoint = viper.GetString("groupcache.pool.httpEndpoint")
+	gcc.Pool.PeerHttpEndpoints = viper.GetStringSlice("groupcache.pool.peerHttpEndpoints")
+
+	gcc.StateDB.CacheSizeInMB = viper.GetInt("groupcache.statedb.cacheSizeInMB")
+	gcc.StateDB.CacheExpiryInMins = viper.GetInt("groupcache.statedb.cacheExpiryInMins")
+
+	c.GroupCache = &gcc
 }

@@ -13,6 +13,8 @@ require (
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.10.2
 	github.com/machinebox/graphql v0.2.2
+	github.com/mailgun/groupcache/v2 v2.2.1
+	github.com/matryer/is v1.4.0 // indirect
 	github.com/multiformats/go-multihash v0.0.14
 	github.com/onsi/ginkgo v1.16.2
 	github.com/onsi/gomega v1.10.1
@@ -29,4 +31,4 @@ require (
 
 replace github.com/ethereum/go-ethereum v1.9.25 => github.com/vulcanize/go-ethereum v1.10.4-statediff-0.0.25
 
-replace github.com/vulcanize/ipfs-ethdb v0.0.2-alpha => github.com/vulcanize/pg-ipfs-ethdb v0.0.2-alpha
+replace github.com/vulcanize/ipfs-ethdb v0.0.2-alpha => ../ipfs-ethdb

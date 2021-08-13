@@ -103,10 +103,11 @@ func NewServer(settings *Config) (Server, error) {
 	sap.supportsStateDiffing = settings.SupportStateDiff
 	var err error
 	sap.backend, err = eth.NewEthBackend(sap.db, &eth.Config{
-		ChainConfig:   settings.ChainConfig,
-		VmConfig:      vm.Config{},
-		DefaultSender: settings.DefaultSender,
-		RPCGasCap:     settings.RPCGasCap,
+		ChainConfig:      settings.ChainConfig,
+		VmConfig:         vm.Config{},
+		DefaultSender:    settings.DefaultSender,
+		RPCGasCap:        settings.RPCGasCap,
+		GroupCacheConfig: settings.GroupCache,
 	})
 	return sap, err
 }

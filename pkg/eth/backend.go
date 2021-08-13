@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -41,7 +42,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
 
-	ipfsethdb "github.com/vulcanize/ipfs-ethdb"
+	ipfsethdb "github.com/vulcanize/ipfs-ethdb/postgres"
 	"github.com/vulcanize/ipld-eth-indexer/pkg/ipfs"
 	"github.com/vulcanize/ipld-eth-indexer/pkg/postgres"
 	shared2 "github.com/vulcanize/ipld-eth-indexer/pkg/shared"
@@ -99,15 +100,23 @@ type Backend struct {
 }
 
 type Config struct {
-	ChainConfig   *params.ChainConfig
-	VmConfig      vm.Config
-	DefaultSender *common.Address
-	RPCGasCap     *big.Int
+	ChainConfig      *params.ChainConfig
+	VmConfig         vm.Config
+	DefaultSender    *common.Address
+	RPCGasCap        *big.Int
+	GroupCacheConfig *shared.GroupCacheConfig
 }
 
 func NewEthBackend(db *postgres.DB, c *Config) (*Backend, error) {
+	gcc := c.GroupCacheConfig
+
 	r := NewCIDRetriever(db)
-	ethDB := ipfsethdb.NewDatabase(db.DB)
+	ethDB := ipfsethdb.NewDatabase(db.DB, ipfsethdb.CacheConfig{
+		Name:           "statedb",
+		Size:           gcc.StateDB.CacheSizeInMB,
+		ExpiryDuration: time.Minute * time.Duration(gcc.StateDB.CacheExpiryInMins),
+	})
+
 	return &Backend{
 		DB:            db,
 		Retriever:     r,

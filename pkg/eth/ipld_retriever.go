@@ -442,7 +442,7 @@ func (r *IPLDRetriever) RetrieveStorageAtByAddressAndStorageSlotAndBlockHash(add
 	if err := r.db.Get(storageResult, RetrieveStorageLeafByAddressHashAndLeafKeyAndBlockHashPgStr, stateLeafKey.Hex(), storageHash.Hex(), hash.Hex()); err != nil {
 		return "", nil, nil, err
 	}
-	if storageResult.Removed {
+	if storageResult.Removed || len(storageResult.Data) == 0 {
 		return "", []byte{}, []byte{}, nil
 	}
 	var i []interface{}

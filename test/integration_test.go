@@ -49,6 +49,132 @@ var _ = Describe("Integration test", func() {
 	var txErr error
 	sleepInterval := 2 * time.Second
 
+	Describe("moved state and storage nodes", func() {
+		// This describe block has to run first
+		var contracts []*integration.ContractDeployed
+		countAIndex := "0x0"
+		countBIndex := "0x1"
+
+		BeforeEach(func() {
+			if directProxyEthCalls {
+				Skip("skipping no-direct-proxy-forwarding integration tests")
+			}
+		})
+
+		It("test init", func() {
+			// deploy 8 contracts with an empty db
+			for i := 0; i < 8; i++ {
+				contract, contractErr = integration.DeploySLVContract()
+				Expect(contractErr).ToNot(HaveOccurred())
+
+				contracts = append(contracts, contract)
+			}
+
+			// increment countA and countB for the first contract
+			_, txErr = integration.IncrementCount(contracts[0].Address, "A")
+			Expect(txErr).ToNot(HaveOccurred())
+			_, txErr = integration.IncrementCount(contracts[0].Address, "B")
+			Expect(txErr).ToNot(HaveOccurred())
+
+			time.Sleep(sleepInterval)
+
+			// check countA for the first contract
+			gethStorage, err := gethClient.StorageAt(ctx, common.HexToAddress(contracts[0].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			ipldStorage, err := ipldClient.StorageAt(ctx, common.HexToAddress(contracts[0].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(gethStorage).To(Equal(ipldStorage))
+
+			// check countB for the first contract
+			gethStorage, err = gethClient.StorageAt(ctx, common.HexToAddress(contracts[0].Address), common.HexToHash(countBIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			ipldStorage, err = ipldClient.StorageAt(ctx, common.HexToAddress(contracts[0].Address), common.HexToHash(countBIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(gethStorage).To(Equal(ipldStorage))
+
+			// increment countAs for last two contracts (state path 0303 and 0309)
+			_, txErr = integration.IncrementCount(contracts[6].Address, "A")
+			Expect(txErr).ToNot(HaveOccurred())
+			_, txErr = integration.IncrementCount(contracts[7].Address, "A")
+			Expect(txErr).ToNot(HaveOccurred())
+
+			time.Sleep(sleepInterval)
+
+			// check countA for contract at state path 0303
+			gethStorage, err = gethClient.StorageAt(ctx, common.HexToAddress(contracts[6].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			ipldStorage, err = ipldClient.StorageAt(ctx, common.HexToAddress(contracts[6].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(gethStorage).To(Equal(ipldStorage))
+
+			// check countA for contract at state path 0309
+			gethStorage, err = gethClient.StorageAt(ctx, common.HexToAddress(contracts[7].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			ipldStorage, err = ipldClient.StorageAt(ctx, common.HexToAddress(contracts[7].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(gethStorage).To(Equal(ipldStorage))
+		})
+
+		It("gets storage for a moved account", func() {
+			// destroy contract at state path 0303
+			// state trie reorganization moves account at path 0309 to 03
+			_, txErr = integration.DestroySLVContract(contracts[6].Address)
+			Expect(txErr).ToNot(HaveOccurred())
+
+			time.Sleep(sleepInterval)
+
+			// check countA for contract at state path 0303 (deleted)
+			gethStorage, err := gethClient.StorageAt(ctx, common.HexToAddress(contracts[6].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			ipldStorage, err := ipldClient.StorageAt(ctx, common.HexToAddress(contracts[6].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(gethStorage).To(Equal(ipldStorage))
+
+			// check countA for contract at state path 03 (previously at 0309)
+			gethStorage, err = gethClient.StorageAt(ctx, common.HexToAddress(contracts[7].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			ipldStorage, err = ipldClient.StorageAt(ctx, common.HexToAddress(contracts[7].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(gethStorage).To(Equal(ipldStorage))
+		})
+
+		It("gets balance for a moved account", func() {
+			// check balance for contract at state path 0303 (deleted)
+			_, err := ipldClient.BalanceAt(ctx, common.HexToAddress(contracts[6].Address), nil)
+			Expect(err).To(HaveOccurred())
+
+			// check balance for contract at state path 03 (previously at 0309)
+			gethBalance, err := gethClient.BalanceAt(ctx, common.HexToAddress(contracts[7].Address), nil)
+			Expect(err).ToNot(HaveOccurred())
+			ipldBalance, err := ipldClient.BalanceAt(ctx, common.HexToAddress(contracts[7].Address), nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(gethBalance).To(Equal(ipldBalance))
+		})
+
+		It("gets a moved storage", func() {
+			// reset countA (delete storage) for the first contract
+			// storage trie reorganization moves storage (countB) at path 0b to an empty path
+			_, txErr = integration.ResetCount(contracts[0].Address, "A")
+			Expect(txErr).ToNot(HaveOccurred())
+
+			time.Sleep(sleepInterval)
+
+			// check countA for the first contract
+			gethStorage, err := gethClient.StorageAt(ctx, common.HexToAddress(contracts[0].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			ipldStorage, err := ipldClient.StorageAt(ctx, common.HexToAddress(contracts[0].Address), common.HexToHash(countAIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(gethStorage).To(Equal(ipldStorage))
+
+			// check countB for the first contract
+			gethStorage, err = gethClient.StorageAt(ctx, common.HexToAddress(contracts[0].Address), common.HexToHash(countBIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			ipldStorage, err = ipldClient.StorageAt(ctx, common.HexToAddress(contracts[0].Address), common.HexToHash(countBIndex), nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(gethStorage).To(Equal(ipldStorage))
+		})
+	})
+
 	Describe("get Block", func() {
 		BeforeEach(func() {
 			if directProxyEthCalls {

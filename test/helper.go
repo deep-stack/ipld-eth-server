@@ -18,6 +18,10 @@ type ContractDestroyed struct {
 	BlockNumber int64 `json:"blockNumber"`
 }
 
+type CountChanged struct {
+	BlockNumber int64 `json:"blockNumber"`
+}
+
 type Tx struct {
 	From            string   `json:"from"`
 	To              string   `json:"to"`
@@ -76,4 +80,69 @@ func SendEth(to string, value string) (*Tx, error) {
 	}
 
 	return &tx, nil
+}
+
+func DeploySLVContract() (*ContractDeployed, error) {
+	res, err := http.Get(fmt.Sprintf("%s/v1/deploySLVContract", srvUrl))
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	var contract ContractDeployed
+
+	decoder := json.NewDecoder(res.Body)
+	err = decoder.Decode(&contract)
+	if err != nil {
+		return nil, err
+	}
+
+	return &contract, nil
+}
+
+func DestroySLVContract(addr string) (*ContractDestroyed, error) {
+	res, err := http.Get(fmt.Sprintf("%s/v1/destroySLVContract?addr=%s", srvUrl, addr))
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	var data ContractDestroyed
+	decoder := json.NewDecoder(res.Body)
+
+	return &data, decoder.Decode(&data)
+}
+
+func IncrementCount(addr string, count string) (*CountChanged, error) {
+	res, err := http.Get(fmt.Sprintf("%s/v1/incrementCount%s?addr=%s", srvUrl, count, addr))
+	if err != nil {
+		return nil, err
+	}
+
+	var blockNumber CountChanged
+
+	decoder := json.NewDecoder(res.Body)
+	err = decoder.Decode(&blockNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	return &blockNumber, nil
+}
+
+func ResetCount(addr string, count string) (*CountChanged, error) {
+	res, err := http.Get(fmt.Sprintf("%s/v1/resetCount%s?addr=%s", srvUrl, count, addr))
+	if err != nil {
+		return nil, err
+	}
+
+	var blockNumber CountChanged
+
+	decoder := json.NewDecoder(res.Body)
+	err = decoder.Decode(&blockNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	return &blockNumber, nil
 }

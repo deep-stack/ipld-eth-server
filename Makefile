@@ -6,22 +6,22 @@ PKGS = go list ./... | grep -v "^vendor/"
 ## Testing library
 GINKGO = $(BIN)/ginkgo
 $(BIN)/ginkgo:
-	go get -u github.com/onsi/ginkgo/ginkgo
+	go get github.com/onsi/ginkgo/ginkgo
 
 ## Migration tool
 GOOSE = $(BIN)/goose
 $(BIN)/goose:
-	go get -u github.com/pressly/goose/cmd/goose
+	go get github.com/pressly/goose/cmd/goose
 
 ## Source linter
 LINT = $(BIN)/golint
 $(BIN)/golint:
-	go get -u golang.org/x/lint/golint
+	go get golang.org/x/lint/golint
 
 ## Combination linter
 METALINT = $(BIN)/gometalinter.v2
 $(BIN)/gometalinter.v2:
-	go get -u gopkg.in/alecthomas/gometalinter.v2
+	go get gopkg.in/alecthomas/gometalinter.v2
 	$(METALINT) --install
 
 
